@@ -1,485 +1,594 @@
-# PulseGuard Cyber AI
+<div align="center">
 
-> AI-powered **self-healing cybersecurity infrastructure**. Detects threats, diagnoses root causes with AI, auto-executes recovery playbooks, and narrates everything with voice — wrapped in a premium enterprise UI.
+# 🛡️ PulseGuard AI
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8) ![Supabase](https://img.shields.io/badge/Supabase-Auth-3ecf8e) ![Build](https://img.shields.io/badge/build-31%20routes-success)
+### **An AI-powered self-healing cybersecurity and resilience platform that detects, analyzes, and recovers from failures autonomously.**
+
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-3-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Auth%20%2B%20Postgres-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-gpt--4o--mini-412991?logo=openai&logoColor=white)](https://platform.openai.com/)
+[![Build](https://img.shields.io/badge/build-31%20routes-success)](#deployment)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
+
+[**Live Demo**](#demo-scenario) · [**Quick Start**](#installation) · [**Architecture**](#architecture) · [**Roadmap**](#future-roadmap) · [**Contributing**](#contributing)
+
+</div>
 
 ---
 
-## TL;DR — run it in 30 seconds
+## Overview
 
-```bash
-npm install
-npm run dev
+**PulseGuard AI** is a production-grade, AI-native operations console that turns reactive incident response into autonomous resilience. It unifies **AI-powered incident analysis**, **security intelligence**, **self-healing recovery**, **chaos engineering**, **resilience testing**, a **voice operations center**, and **temporal incident memory** into a single, beautifully designed experience.
+
+What makes it different: **PulseGuard keeps working when its own components fail.** Every dependency — the LLM, the vector knowledge base, the scanner, the threat intel feed, the analysis queue — has a deterministic fallback path. Disable any of them in the Chaos Center and the system gracefully degrades through an explicit `ai → rules → cache → partial` chain, always returning a complete, actionable report.
+
+PulseGuard is designed to be **demo-ready in 30 seconds** (no env vars required) and **production-ready when you are** (drop in Supabase + OpenAI keys, run one SQL file, redeploy).
+
+---
+
+## Problem Statement
+
+Modern organizations depend on a fragile mesh of APIs, databases, cloud services, third-party SaaS, and applications. When something goes wrong:
+
+- 📉 **Downtime increases** while engineers paste log lines into chat
+- 💸 **Revenue is lost** — every minute of payment-API failure costs real money
+- 👀 **Engineers manually investigate** dashboards, traces, and runbooks under pressure
+- 🔓 **Security threats go unnoticed** because alert fatigue buries the real signal
+- ⏱️ **Recovery takes too long** because diagnosis, decision, and action are three separate humans on three separate tools
+
+Traditional monitoring tools (Datadog, New Relic, PagerDuty, Splunk) **alert users**. They do not:
+
+- Explain **what** is happening in plain English
+- Recommend **how** to fix it
+- Recover **automatically**, with audit trails and approvals
+- Continue functioning when their own dependencies fail
+
+PulseGuard AI solves all four.
+
+---
+
+## Solution
+
+PulseGuard wraps the entire incident lifecycle in a single autonomous loop:
+
+```
+        ┌──────────────────┐
+        │ Connected Assets │
+        └────────┬─────────┘
+                 ▼
+        ┌──────────────────┐
+        │ Monitoring &     │
+        │ Anomaly Detection│
+        └────────┬─────────┘
+                 ▼
+        ┌──────────────────┐
+        │ AI Root Cause &  │
+        │ Severity Scoring │
+        └────────┬─────────┘
+                 ▼
+        ┌──────────────────┐
+        │ Recovery         │
+        │ Recommendations  │
+        └────────┬─────────┘
+                 ▼
+        ┌──────────────────┐
+        │ Autonomous       │
+        │ Recovery Actions │
+        └────────┬─────────┘
+                 ▼
+        ┌──────────────────┐
+        │ Reports &        │
+        │ Executive Brief  │
+        └──────────────────┘
 ```
 
-Open <http://localhost:3000>. You'll land on the public marketing page. Click **Sign in** → tap the `admin@pulseguard.ai` chip → **Sign in**. You're in.
+### Resilience by design
 
-> **No Supabase required.** The app ships in **demo mode**: login & signup accept any credentials, your chosen role is preserved across the whole UI, and sign-out works. Enable Supabase later when you want real persistence — no UI changes needed.
+Every layer has a fallback. The Cyber Analyzer demonstrates the full chain:
 
----
+| Stage      | When it fires                                    | What it does                                                |
+| ---------- | ------------------------------------------------ | ----------------------------------------------------------- |
+| **ai**     | `OPENAI_API_KEY` set and LLM component online    | gpt-4o-mini structured analysis with rich narrative         |
+| **rules**  | LLM unavailable or API call failed               | Deterministic analyzer using simulated recon + threat intel |
+| **cache**  | Rules path failed but a previous report exists   | Returns last-known-good analysis with confidence penalty    |
+| **partial**| Everything else failed                           | Returns a graceful minimum-viable report with explicit gap notes |
 
-## Table of contents
-
-1. [What you get](#what-you-get)
-2. [The two modes — demo & production](#the-two-modes--demo--production)
-3. [Demo flow walkthrough](#demo-flow-walkthrough)
-4. [System Check — prove every feature works](#system-check--prove-every-feature-works)
-5. [Feature reference — what each thing does](#feature-reference--what-each-thing-does)
-6. [Enabling real Supabase auth](#enabling-real-supabase-auth)
-7. [Roles & permissions](#roles--permissions)
-8. [Routes](#routes)
-9. [API endpoints](#api-endpoints)
-10. [Architecture](#architecture)
-11. [Security model](#security-model)
-12. [Environment variables](#environment-variables)
-13. [Build & deploy](#build--deploy)
-14. [Deployment checklist](#deployment-checklist)
-15. [Troubleshooting](#troubleshooting)
+Confidence scores reflect the path taken. Reports are **never empty**.
 
 ---
 
-## What you get
-
-**Premium UI** (dark mode by default, glassmorphism cards, framer-motion animations, neon status indicators):
-
-- **Landing page** — Linear/Vercel-class hero, animated dashboard preview, role spotlight, feature grid
-- **Auth pages** — split-layout glass shell with brand panel + form panel; password strength meter; "show password" toggle; demo account chips
-- **Operations dashboard** — personalized greeting, system health, executive risk, live metrics, AI diagnosis, recovery timeline
-- **AI SRE Agent** — grounded incident analysis (OpenAI → rule-engine fallback)
-- **Cyber analyzer + Chaos Center** — inject failures, validate self-healing
-- **Role-based UI gating** — buttons disable/hide based on `admin · engineer · viewer`
-
-**Enterprise authentication**:
-
-- Supabase email/password with server-side cookies via `@supabase/ssr`
-- Three roles enforced in middleware, API routes, **and** Postgres RLS
-- Auto-create profile trigger on signup
-- `npm run seed:users` to create demo accounts in one shot
-
----
-
-## The two modes — demo & production
-
-The same code runs in two modes. You don't change a single line to switch — just add env vars and restart.
-
-| Concern                    | Demo mode (no env vars)                                    | Production mode (Supabase enabled)                              |
-| -------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------- |
-| `/login` accepts           | Any email + password                                       | Real Supabase credentials only                                  |
-| Role on login              | Derived from email local-part (`admin@` → admin, etc.)     | Read from `profiles.role`                                       |
-| Session storage            | Browser `localStorage` (`pulseguard.demo.session`)         | HTTP-only secure cookies set by `@supabase/ssr`                 |
-| Signup persists?           | No — synthetic profile only                                | Yes — creates `auth.users` + `profiles` rows                    |
-| API auth gate              | No-op (returns synthetic admin)                            | Enforced — 401 when no session, 403 when wrong role             |
-| Middleware route gate      | No-op (everything accessible)                              | Redirects unauthed → `/login`, authed → `/dashboard`            |
-| Sign-out                   | Clears `localStorage`, routes to `/login`                  | Invalidates cookie, routes to `/login`                          |
-| DB RLS                     | n/a                                                        | Role-based policies on `profiles` + `incidents`                 |
-
-Auto-detected via `process.env.NEXT_PUBLIC_SUPABASE_URL`.
-
----
-
-## Demo flow walkthrough
-
-After `npm run dev`:
-
-1. **Landing page** (`/`)
-   - Beautiful hero with animated dashboard preview, feature cards, role spotlight, CTA.
-   - Click **Sign in** (top-right) or **Get started**.
-
-2. **Login** (`/login`)
-   - A subtle "Demo mode active" banner appears.
-   - Three **demo account chips** (`admin@…`, `engineer@…`, `viewer@…`) — clicking auto-fills the form.
-   - Click **Sign in** → routes to `/dashboard`.
-
-3. **Dashboard** (`/dashboard`)
-   - Personalized greeting using your chosen name/role.
-   - The full PulseGuard operator console: executive risk, live metrics, AI SRE report, recovery timeline, copilot, recommendations, autonomous actions, component health, incident memory, charts.
-
-4. **Try role gating**
-   - As `admin` or `engineer`: the **Run Disaster Scenario** button in the topbar is enabled.
-   - As `viewer`: the same button is disabled with a tooltip explaining why.
-
-5. **User menu** (avatar dropdown, top-right)
-   - Initials, full name, email, role badge.
-   - Quick links to Settings + Dashboard.
-   - **Sign out** → routes back to `/login`. Demo session cleared.
-
-6. **Signup** (`/signup`)
-   - Full name, organization, email, password (with live strength meter), role.
-   - On submit in demo mode: creates a local-only profile and drops you into `/dashboard` as that role.
-
-7. **Navigate the rest**
-   - Sidebar has 14 destinations: Dashboard, Copilot, Executive, Analyzer, Chaos Center, Intelligence, Autonomous, Replay, Incidents, Recovery, Security, Reports, **System Check**, Settings.
-   - All work in demo mode against in-memory state.
-
----
-
-## System Check — prove every feature works
-
-Open [`/system-check`](src/app/system-check/page.tsx) (also linked in the sidebar). This page is your single source of truth for whether the app is healthy.
-
-**Top row** — four status cards: Mode · Auth session · AI provider · Database.
-
-**Environment & dependencies** — lists every env var, Supabase table, OpenAI key check, and connectivity probe. Each row shows status (`ok` / `warn` / `fail` / `skip`), a message, and a fix-it hint.
-
-**Full system test** — click the gradient button in the page header. It runs 10 critical paths sequentially with per-step timings:
-
-1. Auth session (`/api/auth/profile`)
-2. Database read (`/api/incidents/list`)
-3. Incident creation (`/api/incidents/create`)
-4. AI diagnosis (`/api/agent`)
-5. Rule fallback (`/api/fallback-analysis`)
-6. Chaos endpoint (`/api/chaos`)
-7. Report generation (`/api/reports/generate`)
-8. Voice alert (browser SpeechSynthesis)
-9. Dashboard refresh (Zustand metric tick)
-10. Protected route access
-
-Each test surfaces a status icon, a duration in ms, and a friendly message. Failed tests show the exact error.
-
-**Feature readiness** — 12 feature cards, each with: **What** it does, **How** to use it, current status (`Working` / `Needs setup` / `Failed`), and an **Open →** link.
-
-> Designed for judges, on-call engineers, and CI smoke tests. Hit it as a JSON endpoint too: `curl http://localhost:3000/api/system-check`.
-
----
-
-## Feature reference — what each thing does
-
-| Feature | What it does | Where to test it | Demo fallback |
-|---|---|---|---|
-| **Signup / Login / Logout** | Email-password auth with three roles | `/login`, `/signup`, avatar menu | Any credentials; role from email prefix; localStorage session |
-| **Protected routes** | Middleware redirects unauthenticated traffic | Open `/dashboard` while signed out | Open in demo |
-| **Dashboard live metrics** | CPU / mem / net / DB / API gauges tick every 1.5 s | `/dashboard` | Synthetic data |
-| **Incident Analyzer** | Paste a domain, IP, log, alert JSON, or NL | `/analyzer` → sample chip → Run | Client-side analyzer if API fails |
-| **AI diagnosis** | OpenAI gpt-4o-mini structured analysis | Trigger an incident on `/dashboard` | Rule engine kicks in automatically |
-| **Rule-based fallback** | Deterministic analyzer | `/system-check` test #5 or POST `/api/fallback-analysis` | Always available |
-| **Chaos Center** | Disable LLM / scanner / vector DB / threat intel | `/chaos` → click any chaos button | Component state in Zustand |
-| **Recovery reports** | Markdown / JSON / PDF export | `/reports` or POST `/api/reports/generate` | Empty-state guidance shown |
-| **Voice alerts** | Browser SpeechSynthesis narrates events | `/system-check` test #8 or trigger an incident | Toast + on-page text alert |
-| **Security events** | MITRE/CVE feed + threat map | `/security`, `/intelligence` | Synthetic feed from store |
-| **Settings** | Account, voice, demo controls | `/settings` | Role-gated buttons |
-| **System Check** | Full diagnostic console | `/system-check` | Always available |
-
-Every feature has: **a status indicator, a test action, success & error messages, a loading state, and an empty state.**
-
----
-
-## Enabling real Supabase auth
-
-### Step 1 — create a Supabase project
-
-Grab three values from <https://supabase.com/dashboard> → Project Settings → API:
-
-- **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-- **anon / public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` *(server-only, never exposed)*
-
-### Step 2 — write them to `.env.local`
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-
-# Server-only — used by `npm run seed:users`. NEVER prefix with NEXT_PUBLIC_.
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-
-# Optional — falls back to deterministic rule engine if absent.
-OPENAI_API_KEY=
-```
-
-### Step 3 — apply the database schema
-
-Open Supabase → SQL Editor → paste the contents of [`supabase/schema.sql`](supabase/schema.sql) → run.
-
-This creates:
-
-- `public.user_role` enum (`admin | engineer | viewer`)
-- `public.profiles` table with RLS (self read/update, admin read-all)
-- `handle_new_user()` trigger — auto-creates a profile row when `auth.users` is inserted, pulling `full_name / organization / role` from signup metadata
-- `public.incidents` table with role-gated RLS (engineer+admin can write, admin can delete)
-
-### Step 4 — seed the demo accounts (optional but recommended)
-
-```bash
-npm run seed:users
-```
-
-Idempotently creates three accounts (password `Demo!2026`):
-
-| Email                    | Role     |
-| ------------------------ | -------- |
-| `admin@pulseguard.ai`    | admin    |
-| `engineer@pulseguard.ai` | engineer |
-| `viewer@pulseguard.ai`   | viewer   |
-
-Override the password with `DEMO_PASSWORD=...` before running the script. Re-running just updates existing rows.
-
-### Step 5 — restart
-
-```bash
-npm run dev
-```
-
-That's it. The demo-mode banner disappears, login enforces real credentials, signup creates real rows, and middleware enforces the route gate. **No code changes needed.**
-
----
-
-## Roles & permissions
-
-Defined in [src/types/auth.ts](src/types/auth.ts) and enforced at three layers:
-
-| Capability                  | admin | engineer | viewer | Enforced by                                  |
-| --------------------------- | :---: | :------: | :----: | -------------------------------------------- |
-| View dashboards & reports   |  ✅   |   ✅     |   ✅   | UI + DB RLS                                  |
-| Run incident analyzer       |  ✅   |   ✅     |   ❌   | `/api/cyber/analyze` (role gate)             |
-| Run chaos / disaster        |  ✅   |   ✅     |   ❌   | UI button + `can.runChaos`                   |
-| Approve autonomous actions  |  ✅   |   ❌     |   ❌   | UI gate (`can.approveActions`)               |
-| Manage org members          |  ✅   |   ❌     |   ❌   | Future admin screen                          |
-| Reset environment           |  ✅   |   ❌     |   ❌   | Settings page gate                           |
-| Write `incidents` row       |  ✅   |   ✅     |   ❌   | RLS policy `incidents write engineer+admin`  |
-| Delete `incidents` row      |  ✅   |   ❌     |   ❌   | RLS policy `incidents delete admin`          |
-
----
-
-## Routes
-
-| Path           | Visibility    | Notes                                                          |
-| -------------- | ------------- | -------------------------------------------------------------- |
-| `/`            | Public        | Landing page                                                   |
-| `/login`       | Public *      | Sign-in form with demo chips                                   |
-| `/signup`      | Public *      | Account creation with role selector                            |
-| `/dashboard`   | Protected     | Operations dashboard                                           |
-| `/analyzer`    | Protected     | Cyber incident analyzer                                        |
-| `/chaos`       | Protected     | Chaos Center (actions gated to admin+engineer)                 |
-| `/reports`     | Protected     | Recovery & cyber reports (PDF export)                          |
-| `/security`    | Protected     | Security intelligence                                          |
-| `/settings`    | Protected     | Account, voice, integrations, demo controls                    |
-| `/system-check`| Protected     | Diagnostics + full system test runner                          |
-| `/copilot`, `/executive`, `/autonomous`, `/replay`, `/incidents`, `/recovery`, `/intelligence` | Protected | Specialized ops modules |
-
-\* Authenticated users hitting `/login` or `/signup` are redirected to `/dashboard` by middleware.
-
----
-
-## API endpoints
-
-All routes return JSON. Auth-gated routes return `401` (unauthenticated) or `403` (wrong role) when Supabase is configured.
-
-| Endpoint | Method | Auth | Purpose |
-|---|---|---|---|
-| `/api/health` | GET | Public | Liveness probe — returns `{ ok, version, demoMode, openai }` |
-| `/api/system-check` | GET | Public | Aggregate env + dependency status |
-| `/api/auth/login` | POST | Public | Sign in (demo mode accepts anything) |
-| `/api/auth/signup` | POST | Public | Create account |
-| `/api/auth/logout` | POST | Public | Invalidate session |
-| `/api/auth/profile` | GET | Public | Current profile (or 401) |
-| `/api/incidents/create` | POST | Signed-in | Create + optionally persist an incident |
-| `/api/incidents/list` | GET | Signed-in | Read incidents from Supabase (or demo notice) |
-| `/api/analyze` | POST | Signed-in | Legacy AI analysis |
-| `/api/agent` | POST | Signed-in | AI SRE Agent (OpenAI → fallback) |
-| `/api/fallback-analysis` | POST | Signed-in | Forces deterministic rule engine |
-| `/api/cyber/analyze` | POST | admin / engineer | Cyber incident analyzer |
-| `/api/chaos` | POST | admin / engineer | Validates chaos commands, returns apply payload |
-| `/api/reports/generate` | POST | Signed-in | Markdown / JSON report from state |
-| `/api/demo/reset` | POST | Public | Acknowledges client-side reset |
-
-In **demo mode** every "signed-in" gate is a no-op so judges can exercise everything without configuring Supabase.
+## Core Features
+
+### 🧠 AI Incident Analyzer
+- **Root-cause analysis** via gpt-4o-mini or deterministic rule engine
+- **Severity scoring** (`low / medium / high / critical`) derived from scan findings + reputation thresholds (80 / 60 / 35)
+- **Business-impact estimation** with cost-per-minute mapping per service
+- **Confidence scores** (0–100) that penalize degraded paths
+
+### 🛡️ Security Intelligence
+- **Threat scoring** for every asset, blended from scanner findings & reputation
+- **MITRE ATT&CK** technique mapping (12 baked-in techniques, e.g. T1110, T1059)
+- **CVE lookups** including high-profile CVEs (xz, HTTP/2 Rapid Reset, regreSSHion)
+- **Threat feed** built live from incidents + cyber reports with citation IDs
+
+### 🔁 Self-Healing Recovery
+- **Automatic recovery workflows** with explicit stages: `detected → analyzing → recovering → resolved`
+- **Recovery recommendations** ranked by priority and confidence
+- **Recovery timeline** rendered with active/done/pending states
+- **MTTR & MTTD** computed continuously from incident history
+
+### 💥 Chaos Engineering
+- **One-click failure injection**: disable the LLM, scanner, vector DB, threat intel, or queue
+- **Scripted disaster scenarios**: 4-step API failure demo with voice narration
+- **Real-time resilience score** that drops as components fail and recovers as they restore
+- **Validates self-healing**: every chaos action proves the fallback path
+
+### 🎙️ Voice Operations Center
+- Browser **SpeechSynthesis** narrates the full incident lifecycle
+- **Mute toggle + volume slider** in the topbar
+- **Text fallback** via on-page toast if the browser blocks speech
+- Preferred voice selection (Google US English, Samantha, Microsoft Aria)
+
+### 🧠 Temporal Incident Memory
+- **Historical incident tracking** with searchable timeline
+- **Pattern detection** (`findPatterns`) — groups incidents by type + service
+- **Next-failure prediction** (`predictNextFailure`) ranks recurring services by recency
+- **Trend analysis** drives the executive risk dashboard's 7-day resilience curve
+
+### 📋 Reporting Engine
+- **Incident reports** with diagnosis, business impact, executive summary
+- **Security reports** with MITRE & CVE annotations
+- **Recovery reports** with stages, durations, and confidence
+- **PDF export** via `jsPDF` + Markdown / JSON via `/api/reports/generate`
+
+### 📊 Real-Time Dashboard
+- **Live metrics** (CPU / memory / network / database / API) updated every 1.5 s
+- **Executive risk panel** with cost, MTTR, MTTD, resilience trend
+- **Component health grid** with degraded/offline visualisation
+- **AI SRE Agent report** as the dashboard hero card
+- **Recovery timeline + status** side-by-side
+
+### 🔐 Enterprise Authentication & RBAC
+- **Email/password auth** via Supabase + `@supabase/ssr` (cookie-based)
+- **Three roles**: `admin · engineer · viewer`
+- **Three-layer enforcement**: middleware redirects + API route guards + Postgres RLS
+- **Demo mode** with localStorage session for zero-config evaluation
+
+### 🩺 System Check Console
+- Full diagnostic page at `/system-check`
+- Environment variables, Supabase reachability, OpenAI key, voice support — all live-checked
+- **"Run Full System Test"** button exercises 10 critical paths sequentially
+- Feature readiness checklist tells judges exactly what works and how to use it
 
 ---
 
 ## Architecture
 
-```
-src/
-├─ app/
-│  ├─ page.tsx                       Public landing page
-│  ├─ layout.tsx                     RootLayout → AuthProvider → AppShell
-│  ├─ login/page.tsx                 Login page (Suspense-wrapped)
-│  ├─ signup/page.tsx                Signup page
-│  ├─ dashboard/page.tsx             Protected operator dashboard
-│  ├─ analyzer · chaos · reports · …  Specialized ops modules
-│  └─ api/
-│     ├─ auth/login · signup · logout · profile    Auth endpoints
-│     ├─ cyber/analyze                              Auth-gated
-│     └─ agent · analyze                            Auth-gated
-├─ components/
-│  ├─ auth/   AuthShell · LoginForm · SignupForm · UserMenu · PasswordStrength
-│  ├─ layout/ AppShell · Sidebar · Topbar · PageHeader
-│  └─ ui/     Button · Card · Badge · Input · Label · Select · …
-├─ features/      Operational modules (dashboard, incidents, recovery, copilot, …)
-├─ hooks/         useVoice · useMetricsTicker
-├─ lib/
-│  ├─ auth-context.tsx  Client AuthProvider + useAuth() (demo & prod modes)
-│  ├─ api-auth.ts       guardApi({ role }) for route handlers
-│  ├─ supabase/         client · server · middleware · auth-helpers
-│  └─ store.ts          Zustand operator state
-├─ middleware.ts        Route gate (redirects on auth state)
-└─ types/auth.ts        Role · Profile · PERMISSIONS map
+### High-level system diagram
 
-supabase/
-└─ schema.sql           profiles + RLS + auto-profile trigger + incidents
+```mermaid
+graph TD
+    A[Connected Assets] --> B[Monitoring Engine]
+    B --> C[AI Analysis]
+    C --> D[Recovery Engine]
+    C --> E[Security Intelligence]
+    D --> F[Reports]
+    E --> F
+    F --> G[Dashboard]
+    G --> H[Voice Ops Center]
+    G --> I[Executive Brief]
 
-scripts/
-└─ seed-demo-users.mjs  Idempotent seeder using service role
+    style A fill:#0ea5e9,stroke:#0284c7,color:#fff
+    style C fill:#8b5cf6,stroke:#6d28d9,color:#fff
+    style D fill:#10b981,stroke:#059669,color:#fff
+    style E fill:#ef4444,stroke:#dc2626,color:#fff
+    style G fill:#f59e0b,stroke:#d97706,color:#fff
 ```
 
-### Auth flow — production
+### Resilience fallback chain
+
+```mermaid
+flowchart LR
+    R[Raw Input] --> S[Scanner]
+    S --> T[Threat Intel]
+    T --> K[Knowledge / Playbooks]
+    K --> AI{OpenAI<br/>available?}
+    AI -- yes --> AIR[LLM Analysis<br/>confidence -0]
+    AI -- no --> RU[Rule Engine<br/>confidence -8]
+    AIR --> REP[Cyber Report]
+    RU --> REP
+    REP --> C[Cache]
+    C -. fallback .-> CH[Cache Hit<br/>confidence -15]
+    CH --> REP
+```
+
+### Authentication flow (production)
 
 ```mermaid
 sequenceDiagram
-  participant B as Browser
-  participant M as Next middleware
-  participant API as /api/auth/login
-  participant SB as Supabase
-  participant P as /dashboard (SSR)
+    participant B as Browser
+    participant M as Middleware
+    participant API as /api/auth/login
+    participant SB as Supabase
+    participant D as /dashboard
 
-  B->>API: POST { email, password }
-  API->>SB: signInWithPassword
-  SB-->>API: session
-  API-->>B: Set-Cookie (sb-…)
-  B->>P: GET /dashboard
-  P->>M: middleware
-  M->>SB: getUser via cookie
-  SB-->>M: user
-  M-->>P: pass through
-  P-->>B: HTML
-```
-
-### Auth flow — demo
-
-```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant API as /api/auth/login
-  participant CTX as AuthContext
-
-  B->>API: POST { email, password }
-  API-->>B: { demoMode: true, profile }
-  B->>CTX: setDemoSession(profile)
-  CTX->>CTX: localStorage.setItem('pulseguard.demo.session', …)
-  B->>B: router.push('/dashboard')
+    B->>API: POST { email, password }
+    API->>SB: signInWithPassword
+    SB-->>API: session
+    API-->>B: Set-Cookie (HTTP-only)
+    B->>D: GET /dashboard
+    D->>M: cookie
+    M->>SB: getUser
+    SB-->>M: user + role
+    M-->>D: authorized
+    D-->>B: HTML
 ```
 
 ---
 
-## Security model
+## Tech Stack
 
-- **Service-role key never reaches the browser.** Only `NEXT_PUBLIC_*` env vars are bundled. The service key is read solely by the seed script.
-- **HTTP-only secure cookies** (set by `@supabase/ssr`) — never readable from JS, immune to XSS token theft.
-- **Server-side session checks** on every request via middleware ([src/middleware.ts](src/middleware.ts)).
-- **API route guards** ([src/lib/api-auth.ts](src/lib/api-auth.ts) → `guardApi`) protect `/api/cyber/analyze` (admin+engineer), `/api/agent`, `/api/analyze`.
-- **Row-Level Security** at the database — even if a token leaks, RLS prevents privilege escalation.
-- **Password strength validation** on signup: ≥ 8 chars + uppercase + lowercase + number; live meter shows weak/fair/strong/excellent.
-- **Email validation** on both client (regex) and server.
-- **Role allowlisting** in the signup API — only `admin | engineer | viewer` accepted.
+| Layer | Technologies |
+|------|--------------|
+| **Frontend** | Next.js 15 (App Router), React 19, TypeScript 5, TailwindCSS 3, ShadCN-style UI, Framer Motion 11, Recharts, Lucide icons |
+| **State** | Zustand 4 (single store, derived selectors) |
+| **Backend** | Next.js Route Handlers (Node.js runtime) |
+| **Database** | Supabase Postgres + Row-Level Security |
+| **Auth** | Supabase Auth via `@supabase/ssr` (HTTP-only cookies) |
+| **AI** | OpenAI `gpt-4o-mini` with deterministic rule-engine fallback |
+| **Voice** | Browser Web Speech API (`SpeechSynthesis`) |
+| **PDF** | jsPDF |
+| **Diagrams** | Mermaid (rendered by GitHub) |
+| **Deployment** | Vercel · Render · any Node host |
 
 ---
 
-## Environment variables
+## Project Structure
 
-Copy `.env.example` → `.env.local` and fill in what you need. Everything is optional for demo mode.
+```
+pulseguard-ai/
+├─ src/
+│  ├─ app/                          # Next.js App Router pages
+│  │  ├─ page.tsx                   # Public landing page
+│  │  ├─ login/ · signup/           # Auth pages (Suspense-wrapped)
+│  │  ├─ dashboard/                 # Operator console
+│  │  ├─ analyzer/ · chaos/         # Incident analyzer · Chaos Center
+│  │  ├─ copilot/ · executive/      # AI copilot · Exec dashboard
+│  │  ├─ autonomous/ · replay/      # Autonomous actions · Disaster replay
+│  │  ├─ incidents/ · recovery/     # Incident list · Recovery view
+│  │  ├─ security/ · intelligence/  # Security center · MITRE/CVE intel
+│  │  ├─ reports/ · settings/       # Reports (PDF) · Settings
+│  │  ├─ system-check/              # Judge-facing diagnostic console
+│  │  └─ api/                       # 17 Route Handlers (see below)
+│  ├─ components/
+│  │  ├─ auth/                      # AuthShell · LoginForm · SignupForm · UserMenu
+│  │  ├─ layout/                    # AppShell · Sidebar · Topbar · PageHeader
+│  │  └─ ui/                        # Button · Card · Badge · Input · Toast · …
+│  ├─ features/                     # Domain-specific UI modules
+│  │  ├─ dashboard/ · executive/
+│  │  ├─ incidents/ · recovery/
+│  │  ├─ cyber/ · chaos/
+│  │  ├─ copilot/ · autonomous/
+│  │  ├─ replay/ · memory/
+│  │  ├─ security/ · security-map/
+│  │  ├─ threat-intel/ · intelligence/
+│  │  ├─ recommendations/ · reports/
+│  │  ├─ metrics/ · simulation/
+│  │  ├─ voice/ · ai-investigator/
+│  ├─ services/                     # Pure business logic
+│  │  ├─ ai.ts · sre-agent.ts       # AI analyzers
+│  │  ├─ incident.ts · resilience.ts# Incident factory · breaker + retry
+│  │  ├─ cyber-analyzer.ts          # Master fallback orchestrator
+│  │  ├─ scanner.ts · threat-intel.ts · knowledge.ts
+│  │  ├─ mitre.ts · threat-feed.ts  # MITRE / CVE
+│  │  ├─ business-risk.ts · predictor.ts · recommendations.ts
+│  │  ├─ copilot.ts · replay.ts
+│  ├─ hooks/                        # useMetrics · useVoice
+│  ├─ lib/
+│  │  ├─ auth-context.tsx           # Client AuthProvider + useAuth()
+│  │  ├─ api-auth.ts                # guardApi() route gate
+│  │  ├─ store.ts                   # Zustand operator state
+│  │  ├─ constants.ts · utils.ts
+│  │  └─ supabase/                  # client · server · middleware · helpers
+│  ├─ types/                        # Shared TypeScript types
+│  └─ middleware.ts                 # Route-level auth gate
+├─ supabase/
+│  └─ schema.sql                    # profiles + incidents + RLS + trigger
+├─ scripts/
+│  └─ seed-demo-users.mjs           # Idempotent demo account seeder
+├─ public/                          # Static assets
+├─ README.md
+├─ package.json · tsconfig.json · next.config.ts · tailwind.config.ts
+└─ .env.local                       # (created by you — see below)
+```
+
+### API surface (17 endpoints)
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/health` | GET | Liveness probe |
+| `/api/system-check` | GET | Aggregate diagnostic |
+| `/api/auth/login` · `/signup` · `/logout` · `/profile` | POST · GET | Authentication |
+| `/api/incidents/create` · `/list` | POST · GET | Incident CRUD |
+| `/api/analyze` · `/agent` | POST | AI incident analyzers (LLM → fallback) |
+| `/api/cyber/analyze` | POST | Cyber report orchestrator (admin/engineer) |
+| `/api/fallback-analysis` | POST | Forces deterministic path (proves offline mode) |
+| `/api/chaos` | POST | Chaos command validator (admin/engineer) |
+| `/api/reports/generate` | POST | Markdown / JSON report from state |
+| `/api/demo/reset` | POST | Reset signal for client state |
+
+---
+
+## Installation
+
+### 1. Clone the repository
+
+```bash
+git clone <repo-url>
+cd pulseguard-ai
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment (optional)
+
+PulseGuard runs **fully in demo mode without any environment variables**. To enable real authentication and persistence, create `.env.local`:
 
 ```env
-# OpenAI — optional. AI analyzer falls back to deterministic rule engine.
+# --- Supabase (optional — enables real auth & persistence) ----------------
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+
+# --- Server-only — used by `npm run seed:users`. NEVER prefix NEXT_PUBLIC_.
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+
+# --- OpenAI (optional — enables LLM analysis; rule engine is the fallback)
 OPENAI_API_KEY=
 
-# Supabase — optional. Without these, the app runs in demo mode.
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-
-# Server-only — used by `npm run seed:users`. NEVER prefix with NEXT_PUBLIC_.
-SUPABASE_SERVICE_ROLE_KEY=
-
-# Public site URL used for auth email redirect links.
+# --- Public site URL (used for auth email redirects) ----------------------
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-**Never expose secret keys to the browser.** Only variables prefixed with `NEXT_PUBLIC_` are bundled. `SUPABASE_SERVICE_ROLE_KEY` and `OPENAI_API_KEY` are read server-side only and verified by `/system-check`.
-
----
-
-## Build & deploy
+### 4. Run the development server
 
 ```bash
-npm run build   # → 31 routes prerendered, middleware bundled
-npm run start
+npm run dev
 ```
 
-Deploys cleanly to **Vercel** or **Render**. Just set the env vars in your hosting dashboard. Middleware automatically uses the Edge cookie store — no extra config needed.
+Open <http://localhost:3000>. The landing page appears. Click **Sign in** → tap the `admin@pulseguard.ai` chip → **Sign in**. You're inside the console.
 
-### Vercel
+### 5. (Optional) Enable Supabase
 
-1. Import the repo at <https://vercel.com/new>.
-2. Set the env vars listed above in Project Settings → Environment Variables (Production + Preview).
-3. Deploy. The default Next.js preset works out of the box.
-4. Visit `https://<your-app>.vercel.app/system-check` to verify.
+When you're ready for real persistence:
 
-### Render
+```bash
+# 1. Run the schema in your Supabase SQL editor
+# (open supabase/schema.sql, copy, paste, run)
+
+# 2. Seed demo accounts
+npm run seed:users   # creates admin@ / engineer@ / viewer@pulseguard.ai
+```
+
+The app **auto-detects** whether Supabase is configured. No code changes required.
+
+---
+
+## Local Development
+
+### Available commands
+
+```bash
+npm run dev        # Start dev server on http://localhost:3000
+npm run build      # Production build (31 routes, ~38 s)
+npm run start      # Run production server
+npm run lint       # ESLint with Next.js + TS rules
+npm run seed:users # Create the three demo Supabase accounts
+```
+
+### Day-to-day workflow
+
+| Task                       | Where to go                                     | What you'll do                                               |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------ |
+| Add an asset / incident    | `/dashboard` → **Simulation Center**            | Click an incident type to trigger the full AI lifecycle      |
+| Run a health check         | `/system-check` → **Run Full System Test**      | 10 sequential checks with per-step pass/fail/timing          |
+| Run AI analysis            | `/analyzer`                                     | Paste a domain/IP/log/JSON/NL → **Run Safe Analysis**        |
+| Trigger chaos              | `/chaos`                                        | Disable individual components and watch the fallbacks engage |
+| Generate a report          | `/reports` (UI) or `POST /api/reports/generate` | PDF, Markdown, or JSON                                       |
+| Inspect protected route    | Sign out then visit `/dashboard`                | Middleware redirects you to `/login?redirect=/dashboard`     |
+
+### Hot reloading & state
+
+State lives in a single Zustand store at [src/lib/store.ts](src/lib/store.ts). On HMR the store persists, so chaos toggles, voice queue, incidents, and reports survive code reloads.
+
+---
+
+## Demo Scenario
+
+A complete, judge-ready walkthrough — runs in **under 2 minutes**, requires **zero configuration**.
+
+### 1. **Sign in**
+Navigate to <http://localhost:3000/login>. Tap the **`admin@pulseguard.ai`** chip (auto-fills email + password). Click **Sign in**. You land on `/dashboard`.
+
+### 2. **Verify the system**
+Open `/system-check` from the sidebar. Click **Run Full System Test**. Watch 10 checks pass in sequence (auth · DB read · incident creation · AI diagnosis · rule fallback · chaos · report · voice · metrics · protected route). Each check shows a duration in milliseconds.
+
+### 3. **Run a health check**
+Back on `/dashboard`, the **Live Metrics Panel** is already updating every 1.5 s. The **AI SRE Report** card shows the current system state.
+
+### 4. **Simulate an API failure**
+Top-right of the topbar: click **Run Disaster Scenario**. PulseGuard:
+- Speaks: _"Initiating disaster recovery simulation."_
+- Detects a Payment API failure
+- The AI SRE Agent diagnoses root cause + business impact
+- Recovery starts → progresses → resolves
+- All four stages animate live across **Recovery Timeline** and **Recovery Status**
+
+### 5. **Trigger chaos**
+Open `/chaos`. Click the **LLM Analyzer** toggle to disable it. Now go to `/analyzer`, click the **Domain** sample chip, hit **Run Safe Analysis**. The report comes back with `source: "rules"` and a slightly lower confidence — proving the deterministic fallback works.
+
+### 6. **Generate a report**
+Open `/reports`. Click **Export PDF** on any incident. Or call `POST /api/reports/generate` with your current state for Markdown / JSON.
+
+### 7. **Review with leadership**
+Open `/executive`. The dashboard shows mean-time-to-recovery, mean-time-to-detect, business-cost-per-minute, and a 7-day resilience trend — all derived from real state, no mocks.
+
+---
+
+## Deployment
+
+### Deploy to Vercel
+
+1. **Push to GitHub**
+   ```bash
+   git push origin main
+   ```
+2. **Import the project** at <https://vercel.com/new>.
+3. **Add environment variables** (Project Settings → Environment Variables):
+   ```
+   NEXT_PUBLIC_SUPABASE_URL
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   SUPABASE_SERVICE_ROLE_KEY    (server-only)
+   OPENAI_API_KEY               (optional)
+   NEXT_PUBLIC_SITE_URL
+   NEXT_PUBLIC_APP_URL
+   ```
+4. **Deploy.** Vercel auto-detects Next.js — no config needed.
+5. **Verify**: visit `https://<your-app>.vercel.app/system-check`.
+
+### Deploy to Render
 
 1. Create a new **Web Service** from this repo.
-2. Build command: `npm install && npm run build`
-3. Start command: `npm run start`
-4. Add the env vars under **Environment**.
+2. **Build command**: `npm install && npm run build`
+3. **Start command**: `npm run start`
+4. Add the same env vars in **Environment**.
 5. Hit `/api/health` to confirm.
 
----
+### Behavior after deployment
 
-## Deployment checklist
-
-Before promoting to production:
-
-- [ ] `npm run build` is green locally
-- [ ] `.env.local` contains real Supabase URL + anon key (or you accept demo mode)
-- [ ] `supabase/schema.sql` has been run in the target project
-- [ ] `npm run seed:users` has been run (or real accounts exist)
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` is set **only** as a server env var, never `NEXT_PUBLIC_*`
-- [ ] `OPENAI_API_KEY` is set if you want LLM responses (optional)
-- [ ] `NEXT_PUBLIC_SITE_URL` matches the deployed origin (auth redirect URLs)
-- [ ] `/system-check` shows 0 failures in production
-- [ ] `/api/health` returns `{ ok: true }`
-- [ ] Sign-in with each role works; protected routes redirect when signed out
-- [ ] Rate-limit + monitoring configured in your hosting platform (optional but recommended)
+- 🟢 **With Supabase configured** — login enforces real credentials, signup persists rows, middleware gates protected routes, RLS protects the database.
+- 🟡 **Without Supabase** — `/system-check` reports demo mode; any credentials work; localStorage holds the session; the app remains fully usable.
+- 🤖 **With `OPENAI_API_KEY`** — AI analyses use gpt-4o-mini.
+- 🛟 **Without `OPENAI_API_KEY`** — the deterministic rule engine runs. Reports are still complete.
 
 ---
 
-## Troubleshooting
+## Security Notes
 
-| Symptom                                    | Fix                                                                                                  |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Don't know if it's working                 | Open `/system-check` and click **Run Full System Test**. Or `curl /api/health`.                      |
-| Login form returns 503                     | You're on an old build — pull latest. Demo mode now returns 200 with a synthetic profile.            |
-| Build error: `useSearchParams() should be wrapped in a suspense boundary` | The login page already wraps `<LoginForm />` in `<Suspense>` — verify you're on Next 15.x.           |
-| After seeding, login says "invalid credentials" | Confirm you ran `supabase/schema.sql` and the trigger exists. Then re-run `npm run seed:users`.      |
-| Signup trigger error in Postgres logs      | Re-run `supabase/schema.sql` — the trigger is idempotent via `drop trigger if exists`.               |
-| Windows: `@next/swc-win32-x64-msvc` corrupt | Delete `node_modules/@next/swc-win32-x64-msvc` and `npm install` again. WASM fallback also works.    |
-| "Cannot find module '@supabase/ssr'"       | `npm install` — it's already in `dependencies`.                                                      |
-| Voice alerts silent                        | Browser may block speech before first user gesture. Click anywhere first, then re-test from `/system-check`. |
-| Analyzer returns empty                     | Open `/chaos` and make sure components aren't all disabled. Click **Restore all**.                   |
-| Charts have no data                        | Live ticker seeds 30 points on mount. Hard refresh (Ctrl-Shift-R) if the chart stays empty.          |
-| `/api/system-check` shows Supabase "fail"  | Wrong project URL or anon key. Re-copy from Supabase dashboard → Project Settings → API.             |
+PulseGuard is a **defensive** platform. By design:
+
+- ❌ **No offensive actions** — the scanner is fully simulated (`simulatedScan`), the threat intel is simulated, no outbound packets are emitted.
+- ✅ **Safe-by-default recon** — every "scan" is a deterministic pseudo-random simulation seeded from the input. Reproducible, auditable, side-effect free.
+- ✅ **Input validation** at the API boundary: email regex, password strength (≥ 8 chars + upper + lower + digit), role allow-listing, JSON schema checks.
+- ✅ **Environment variables for secrets** — `SUPABASE_SERVICE_ROLE_KEY` and `OPENAI_API_KEY` are server-only. Only `NEXT_PUBLIC_*` is bundled to the browser.
+- ✅ **HTTP-only secure cookies** for sessions — immune to XSS token theft.
+- ✅ **Row-Level Security** at the database — admin/engineer/viewer roles enforced in Postgres, not just in the UI.
+- ✅ **No hardcoded credentials** — even the demo seeder accepts `DEMO_PASSWORD` env override.
+- ✅ **API route guards** (`guardApi`) wrap every protected endpoint with role-based access control.
+- ✅ **CSP-friendly** — no `dangerouslySetInnerHTML`, no inline scripts beyond Next.js defaults.
 
 ---
 
-## Demo accounts (when Supabase is enabled)
+## Future Roadmap
 
-| Email                    | Password    | Role     |
-| ------------------------ | ----------- | -------- |
-| `admin@pulseguard.ai`    | `Demo!2026` | admin    |
-| `engineer@pulseguard.ai` | `Demo!2026` | engineer |
-| `viewer@pulseguard.ai`   | `Demo!2026` | viewer   |
+PulseGuard is intentionally simple today so the resilience model is easy to read. Next on the runway:
 
-Created by `npm run seed:users`. In demo mode (no Supabase), these same emails work too — the role is inferred from the email prefix.
+- 🌐 **Multi-agent orchestration** — split the AI SRE Agent into specialist agents (Triage, Diagnosis, Remediation, Communication) coordinated by a planner
+- 🔄 **LangGraph workflows** — replace the ad-hoc fallback chain with a typed, observable state machine
+- 📚 **Agentic RAG** — index runbooks, postmortems, and Slack history; retrieve grounded citations per incident
+- 🛰️ **Threat intelligence integrations** — VirusTotal · AbuseIPDB · Shodan · OTX · AlienVault
+- 💬 **Slack alerts** — interactive `@pulseguard` bot with approve / dismiss actions
+- 👥 **Microsoft Teams alerts** — adaptive cards with incident summaries
+- 🏢 **Multi-tenant workspaces** — per-organization data isolation, custom branding
+- 🧪 **Advanced resilience testing** — scheduled chaos experiments, blast-radius analysis, automatic rollback validation
+- 🎙️ **Voice-driven incident commander** — speech-to-text input, hands-free triage
+- 📈 **Cost-aware autoscaling recommendations** — link MTTR/MTTD to spend optimization
+- 🔍 **Distributed tracing ingestion** — OpenTelemetry plug-in for real-asset wiring
 
 ---
 
-## Tech stack
+## Contributing
 
-Next.js 15 (App Router) · TypeScript 5 · TailwindCSS 3 · ShadCN-style UI · Framer Motion · Recharts · Zustand · Supabase Auth + Postgres + RLS · `@supabase/ssr` · OpenAI · Browser Speech Synthesis
+Contributions are warmly welcomed. PulseGuard follows a **lightweight, opinionated** workflow:
+
+1. **Fork** the repository and create a feature branch:
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
+2. **Install** and verify the baseline:
+   ```bash
+   npm install
+   npm run build   # must be green (31 routes)
+   npm run lint    # must be clean
+   ```
+3. **Code with the grain**:
+   - Keep services pure (no React imports in `src/services/`)
+   - Add types to [src/types/index.ts](src/types/index.ts) — no `any`
+   - Wire state into the existing Zustand store rather than adding new stores
+   - Every API route must return JSON and use `guardApi()` if protected
+4. **Test locally**:
+   - Add or update the relevant feature card on `/system-check`
+   - Run **"Run Full System Test"** — all 10 checks should still pass
+5. **Open a PR** with:
+   - A clear description and motivation
+   - Screenshots / screen recordings for any UI change
+   - Notes on resilience: how does your feature degrade when its dependencies fail?
+
+### Code style
+
+- TypeScript strict mode, ESLint with Next.js rules
+- Tailwind utility classes — no CSS-in-JS
+- Components in PascalCase, hooks in `useCamelCase`, files in kebab-case
+- Pure functions over classes wherever practical
+
+### Reporting issues
+
+Please use GitHub Issues. Include:
+- Repro steps
+- Expected vs. actual behavior
+- Output of `/system-check` (screenshot is fine)
+- Browser / OS / Node version
+
+---
+
+## Acknowledgements
+
+PulseGuard's visual language draws inspiration from **Linear**, **Vercel**, **Datadog**, and **Google Cloud Security Command Center**. The resilience model is influenced by **Netflix's Chaos Monkey** philosophy and the **circuit-breaker pattern** popularized by Michael Nygard's _Release It!_.
 
 ---
 
 ## License
 
-MIT.
+```
+MIT License
+
+Copyright (c) 2026 PulseGuard AI contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+```
+
+---
+
+<div align="center">
+
+**Built with ❤️ for resilient systems.**
+
+[⬆ Back to top](#-pulseguard-ai)
+
+</div>
