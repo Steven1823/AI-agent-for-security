@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 8%;
+    --card-foreground: 210 40% 98%;
+    --primary: 199 89% 55%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 14%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 263 70% 60%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 199 89% 55%;
+    --success: 152 69% 45%;
+    --warning: 38 92% 55%;
+    --danger: 0 80% 60%;
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: linear-gradient(
+      145deg,
+      hsl(222 40% 11% / 0.75),
+      hsl(222 44% 7% / 0.65)
+    );
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid hsl(210 40% 98% / 0.06);
+  }
+
+  .glass-strong {
+    background: linear-gradient(
+      145deg,
+      hsl(222 40% 13% / 0.9),
+      hsl(222 44% 8% / 0.85)
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid hsl(210 40% 98% / 0.08);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .grid-bg {
+    background-image: radial-gradient(
+        circle at 1px 1px,
+        hsl(210 40% 98% / 0.04) 1px,
+        transparent 0
+      );
+    background-size: 28px 28px;
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 0 1px hsl(199 89% 55% / 0.2),
+      0 8px 40px -12px hsl(199 89% 55% / 0.5);
+  }
+
+  .glow-danger {
+    box-shadow: 0 0 0 1px hsl(0 80% 60% / 0.25),
+      0 8px 40px -12px hsl(0 80% 60% / 0.55);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(217 33% 25%);
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.35;
+}
+.aurora::before {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #2563eb, transparent 70%);
+  top: -200px;
+  left: -100px;
+}
+.aurora::after {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #7c3aed, transparent 70%);
+  bottom: -150px;
+  right: -100px;
+}
