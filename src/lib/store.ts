@@ -3,15 +3,21 @@
 import { create } from "zustand";
 import type {
   AutonomousAction,
+  ChaosScenario,
   ChatMessage,
   ComponentHealth,
   ComponentId,
   ComponentStatus,
   CyberReport,
+  HealthCheck,
   Incident,
   IncidentType,
   MetricSnapshot,
+  MonitoredService,
   Recommendation,
+  RecoveryAction,
+  RecoveryActionStatus,
+  RecoveryActionType,
   SystemMetricPoint,
 } from "@/types";
 import {
@@ -22,7 +28,17 @@ import {
 import { runSREAgent } from "@/services/sre-agent";
 import { answer as copilotAnswer } from "@/services/copilot";
 import { computeRecommendations } from "@/services/recommendations";
+import {
+  type ChaosOverride,
+  DEFAULT_SERVICES,
+  checkService,
+  recoveryActionFor,
+  summarize,
+} from "@/services/monitor";
 import { clamp, formatClock, randBetween, uid } from "@/lib/utils";
+
+const HEALTH_CHECK_BUFFER = 120; // last N checks kept in memory for charts
+const FAILURE_THRESHOLD = 3; // consecutive failures before opening incident
 
 const RECOVERY_DETAIL: Record<
   Incident["recoveryStage"],
@@ -53,11 +69,19 @@ interface PulseState {
   copilotThinking: boolean;
   autonomousActions: AutonomousAction[];
 
+  // monitoring engine
+  monitoredServices: MonitoredService[];
+  healthChecks: HealthCheck[];
+  recoveryActions: RecoveryAction[];
+  chaosOverrides: Record<string, ChaosOverride>;
+  monitorBootstrapped: boolean;
+
   // derived helpers
   healthScore: () => number;
   threatScore: () => number;
   systemResilience: () => number;
   recommendations: () => Recommendation[];
+  monitorSummary: () => ReturnType<typeof summarize>;
 
   // actions
   toggleMute: () => void;
@@ -86,6 +110,28 @@ interface PulseState {
   executeAction: (id: string) => Promise<void>;
   rejectAction: (id: string) => void;
   clearAutonomous: () => void;
+
+  // monitoring engine actions
+  bootstrapMonitor: () => void;
+  addService: (
+    svc: Omit<
+      MonitoredService,
+      "id" | "status" | "responseTimeMs" | "lastCheckedAt" | "failureCount" | "createdAt"
+    > & { id?: string },
+  ) => MonitoredService;
+  removeService: (id: string) => void;
+  runHealthCheck: (serviceId: string) => Promise<HealthCheck | null>;
+  runAllHealthChecks: () => Promise<HealthCheck[]>;
+  setChaosOverride: (serviceId: string, override: ChaosOverride) => void;
+  clearChaos: () => void;
+  simulateChaos: (scenario: ChaosScenario) => Promise<void>;
+  queueRecoveryAction: (
+    incidentId: string,
+    serviceId: string | null,
+    actionType: RecoveryActionType,
+    message: string,
+  ) => RecoveryAction;
+  updateRecoveryAction: (id: string, status: RecoveryActionStatus) => void;
 }
 
 const BASELINE: MetricSnapshot = {
@@ -151,6 +197,12 @@ export const usePulseStore = create<PulseState>((set, get) => ({
   copilotThinking: false,
   autonomousActions: [],
 
+  monitoredServices: [],
+  healthChecks: [],
+  recoveryActions: [],
+  chaosOverrides: {},
+  monitorBootstrapped: false,
+
   healthScore: () => computeHealthScore(get().incidents),
   threatScore: () => {
     const active = get().incidents.filter((i) => i.status !== "resolved");
@@ -169,6 +221,8 @@ export const usePulseStore = create<PulseState>((set, get) => ({
       cyberReports: get().cyberReports,
       metrics: get().metrics,
     }),
+
+  monitorSummary: () => summarize(get().monitoredServices),
 
   toggleMute: () => set((s) => ({ muted: !s.muted })),
   setVolume: (v) => set({ volume: clamp(v, 0, 100) }),
@@ -284,6 +338,11 @@ export const usePulseStore = create<PulseState>((set, get) => ({
       components: { ...DEFAULT_COMPONENTS },
       chatLog: [],
       autonomousActions: [],
+      monitoredServices: DEFAULT_SERVICES.map((s) => ({ ...s })),
+      healthChecks: [],
+      recoveryActions: [],
+      chaosOverrides: {},
+      monitorBootstrapped: true,
     }),
 
   // ---------- cyber ----------
@@ -509,6 +568,146 @@ export const usePulseStore = create<PulseState>((set, get) => ({
   },
 
   clearAutonomous: () => set({ autonomousActions: [] }),
+
+  // monitoring engine actions
+  bootstrapMonitor: () => {
+    if (get().monitorBootstrapped) return;
+    set({
+      monitoredServices: DEFAULT_SERVICES.map((s) => ({ ...s })),
+      monitorBootstrapped: true,
+    });
+  },
+
+  addService: (input) => {
+    const id =
+      input.id ??
+      `svc_${input.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 30)}_${
+        Math.random().toString(36).slice(2, 6)
+      }`;
+    const svc: MonitoredService = {
+      id,
+      name: input.name,
+      url: input.url,
+      method: input.method,
+      expectedStatus: input.expectedStatus,
+      timeoutMs: input.timeoutMs,
+      region: input.region,
+      criticality: input.criticality,
+      status: "unknown",
+      responseTimeMs: 0,
+      lastCheckedAt: null,
+      failureCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+    set((s) => ({ monitoredServices: [...s.monitoredServices, svc] }));
+    return svc;
+  },
+
+  removeService: (id) =>
+    set((s) => ({
+      monitoredServices: s.monitoredServices.filter((x) => x.id !== id),
+      healthChecks: s.healthChecks.filter((c) => c.serviceId !== id),
+    })),
+
+  runHealthCheck: async (serviceId) => {
+    const svc = get().monitoredServices.find((s) => s.id === serviceId);
+    if (!svc) return null;
+    const check = await checkService(svc, {
+      chaosOverrides: get().chaosOverrides,
+    });
+    applyCheck(set, get, check, svc);
+    return check;
+  },
+
+  runAllHealthChecks: async () => {
+    const services = get().monitoredServices;
+    if (services.length === 0) return [];
+    const results = await Promise.all(
+      services.map((s) =>
+        checkService(s, { chaosOverrides: get().chaosOverrides }).then(
+          (c) => ({ c, s }),
+        ),
+      ),
+    );
+    for (const { c, s } of results) applyCheck(set, get, c, s);
+    return results.map(({ c }) => c);
+  },
+
+  setChaosOverride: (serviceId, override) =>
+    set((s) => ({
+      chaosOverrides: { ...s.chaosOverrides, [serviceId]: override },
+    })),
+
+  clearChaos: () => {
+    set({ chaosOverrides: {} });
+    get().speak("Chaos cleared. Restoring all services.");
+  },
+
+  simulateChaos: async (scenario) => {
+    const services = get().monitoredServices;
+    const matchers: Record<ChaosScenario, (s: MonitoredService) => boolean> = {
+      "api-failure": (s) => s.name.toLowerCase().includes("main"),
+      latency: () => true,
+      "ai-down": (s) => s.name.toLowerCase().includes("ai"),
+      "db-failure": (s) => s.name.toLowerCase().includes("database"),
+      "security-attack": (s) => s.name.toLowerCase().includes("auth"),
+    };
+    const matcher = matchers[scenario];
+    let targets = services.filter(matcher);
+    if (targets.length === 0 && services.length > 0) targets = [services[0]];
+
+    const override: ChaosOverride = scenario === "latency" ? "degrade" : "fail";
+    set((s) => ({
+      chaosOverrides: {
+        ...s.chaosOverrides,
+        ...Object.fromEntries(targets.map((t) => [t.id, override])),
+      },
+    }));
+
+    get().speak(
+      `Chaos scenario activated: ${scenario.replace(/-/g, " ")}. Watching auto recovery.`,
+    );
+
+    // Force three consecutive failed checks so the incident pipeline fires.
+    await get().runAllHealthChecks();
+    await get().runAllHealthChecks();
+    await get().runAllHealthChecks();
+  },
+
+  queueRecoveryAction: (incidentId, serviceId, actionType, message) => {
+    const action: RecoveryAction = {
+      id: uid("rec"),
+      incidentId,
+      serviceId,
+      actionType,
+      actionStatus: "queued",
+      message,
+      createdAt: new Date().toISOString(),
+    };
+    set((s) => ({
+      recoveryActions: [action, ...s.recoveryActions].slice(0, 50),
+    }));
+    // Auto-progress queued -> running -> done so the UI feels live.
+    setTimeout(() => get().updateRecoveryAction(action.id, "running"), 600);
+    setTimeout(() => get().updateRecoveryAction(action.id, "done"), 1800);
+    return action;
+  },
+
+  updateRecoveryAction: (id, status) =>
+    set((s) => ({
+      recoveryActions: s.recoveryActions.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              actionStatus: status,
+              completedAt:
+                status === "done" || status === "failed"
+                  ? new Date().toISOString()
+                  : a.completedAt,
+            }
+          : a,
+      ),
+    })),
 }));
 
 // ---------- helpers ----------
@@ -609,5 +808,68 @@ function seedHistory(): SystemMetricPoint[] {
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Apply a fresh HealthCheck to store state: updates the matched service's
+ * status / latency / failure count and appends to the rolling check buffer.
+ *
+ * When a service hits FAILURE_THRESHOLD consecutive failures we open an
+ * incident (with type derived from the service name) and queue an automatic
+ * recovery action — so the entire pipeline is wired end-to-end with no extra
+ * orchestration code in the UI.
+ */
+function applyCheck(
+  set: (fn: (s: PulseState) => Partial<PulseState>) => void,
+  get: () => PulseState,
+  check: HealthCheck,
+  svc: MonitoredService,
+) {
+  set((s) => {
+    const services = s.monitoredServices.map((cur) => {
+      if (cur.id !== svc.id) return cur;
+      const isFailure = check.status === "failed";
+      const failureCount = isFailure ? cur.failureCount + 1 : 0;
+      return {
+        ...cur,
+        status: check.status,
+        responseTimeMs: check.responseTimeMs,
+        lastCheckedAt: check.checkedAt,
+        failureCount,
+      };
+    });
+    return {
+      monitoredServices: services,
+      healthChecks: [check, ...s.healthChecks].slice(0, HEALTH_CHECK_BUFFER),
+    };
+  });
+
+  // After state is committed, decide whether to escalate.
+  const updated = get().monitoredServices.find((x) => x.id === svc.id);
+  if (!updated) return;
+  if (updated.failureCount === FAILURE_THRESHOLD) {
+    void escalateFailure(get, updated);
+  }
+}
+
+async function escalateFailure(
+  get: () => PulseState,
+  svc: MonitoredService,
+) {
+  const incidentType: IncidentType = (() => {
+    const n = svc.name.toLowerCase();
+    if (n.includes("auth") || n.includes("security")) return "security_attack";
+    if (n.includes("database") || n.includes("db")) return "database_failure";
+    if (n.includes("ai") || n.includes("payment")) return "high_latency";
+    return "api_failure";
+  })();
+
+  get().speak(
+    `Critical incident detected in ${svc.name}. Recovery has started.`,
+  );
+
+  const incident = await get().triggerIncident(incidentType);
+  const reco = recoveryActionFor(svc);
+  get().queueRecoveryAction(incident.id, svc.id, reco.actionType, reco.message);
+}
 
 export { threatLevelFromScore };

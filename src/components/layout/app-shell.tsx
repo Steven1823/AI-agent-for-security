@@ -8,6 +8,7 @@ import { NAV_ITEMS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useVoice } from "@/hooks/useVoice";
 import { useMetricsTicker } from "@/hooks/useMetrics";
+import { useHealthMonitor } from "@/hooks/useHealthMonitor";
 
 // Routes that should render WITHOUT the operator sidebar / topbar / mobile
 // nav. These have their own chrome (landing page, auth pages).
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Voice + metrics ticker are operator-only — never run on landing/auth.
   useVoice();
   useMetricsTicker();
+  useHealthMonitor(30_000);
 
   if (isBare) {
     return <>{children}</>;

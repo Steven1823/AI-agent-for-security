@@ -332,3 +332,75 @@ export interface ExecutiveRisk {
   mttdMs: number; // mean time to detection (ms) â€” simulated from severity
   recoverySuccessRate: number; // 0-100
 }
+
+// ---------- Monitoring Engine ----------
+
+
+/** API monitor status: derived from latency + status code + chaos overrides. */
+export type MonitorStatus = "healthy" | "degraded" | "failed" | "unknown";
+
+/** Service criticality — drives alert priority, voice, and recovery selection. */
+export type Criticality = "low" | "medium" | "high" | "critical";
+
+/** HTTP methods supported by the monitor (kept tight on purpose). */
+export type MonitorMethod = "GET" | "HEAD" | "POST";
+
+/** A monitored service. URL "demo://service-id" runs in deterministic sim. */
+export interface MonitoredService {
+  id: string;
+  name: string;
+  url: string;
+  method: MonitorMethod;
+  expectedStatus: number;
+  timeoutMs: number;
+  region: string;
+  criticality: Criticality;
+  status: MonitorStatus;
+  responseTimeMs: number;
+  lastCheckedAt: string | null;
+  failureCount: number; // consecutive failures (resets to 0 on healthy)
+  createdAt: string;
+}
+
+/** A single point-in-time health-check observation. */
+export interface HealthCheck {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  status: MonitorStatus;
+  statusCode: number | null;
+  responseTimeMs: number;
+  errorMessage: string | null;
+  checkedAt: string;
+}
+
+/** What kind of automated remediation to attempt. */
+export type RecoveryActionType =
+  | "switch-backup"
+  | "enable-cache"
+  | "rule-fallback"
+  | "keyword-fallback"
+  | "rate-limit"
+  | "alert-admin"
+  | "restart-component";
+
+export type RecoveryActionStatus = "queued" | "running" | "done" | "failed";
+
+export interface RecoveryAction {
+  id: string;
+  incidentId: string;
+  serviceId: string | null;
+  actionType: RecoveryActionType;
+  actionStatus: RecoveryActionStatus;
+  message: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+/** Chaos scenarios the user can trigger from the Chaos Center. */
+export type ChaosScenario =
+  | "api-failure"
+  | "latency"
+  | "ai-down"
+  | "db-failure"
+  | "security-attack";

@@ -17,6 +17,8 @@ import { ExecutiveRiskDashboard } from "@/features/executive/risk-dashboard";
 import { CopilotPanel } from "@/features/copilot/copilot-panel";
 import { RecommendationsEngine } from "@/features/recommendations/recommendations-engine";
 import { IncidentMemory } from "@/features/memory/incident-memory";
+import { ApiMonitorPanel } from "@/features/monitor/api-monitor-panel";
+import { PageIntro } from "@/components/layout/page-intro";
 import { useAuth } from "@/lib/auth-context";
 
 const fade = {
@@ -38,7 +40,13 @@ export default function DashboardPage() {
         description="AI-powered cybersecurity, autonomous detection, and self-healing recovery — resilient even when components fail."
       />
 
+      <PageIntro description="Shows live system health and API uptime. Every service is checked every 30 seconds — failures open incidents and trigger the AI recovery agent automatically." />
+
       <StatCards />
+
+      <motion.div {...fade} transition={{ delay: 0.03 }}>
+        <ApiMonitorPanel />
+      </motion.div>
 
       <motion.div {...fade} transition={{ delay: 0.04 }}>
         <ExecutiveRiskDashboard />

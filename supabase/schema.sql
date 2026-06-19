@@ -164,3 +164,133 @@ create policy "incidents delete admin"
       where p.id = auth.uid() and p.role = 'admin'
     )
   );
+
+-- =====================================================================
+-- API Monitoring Engine — services, health checks, recovery actions
+-- =====================================================================
+
+create table if not exists public.monitored_services (
+  id text primary key,
+  name text not null,
+  url text not null,
+  method text not null default 'GET',
+  expected_status integer not null default 200,
+  timeout_ms integer not null default 5000,
+  region text not null default 'us-east',
+  criticality text not null default 'medium',
+  status text not null default 'unknown',
+  response_time_ms integer not null default 0,
+  failure_count integer not null default 0,
+  last_checked_at timestamptz,
+  created_at timestamptz not null default now(),
+  owner_id uuid references auth.users (id) on delete set null
+);
+
+alter table public.monitored_services enable row level security;
+
+drop policy if exists "services read authenticated"   on public.monitored_services;
+drop policy if exists "services write engineer+admin" on public.monitored_services;
+drop policy if exists "services update engineer+admin" on public.monitored_services;
+drop policy if exists "services delete admin"         on public.monitored_services;
+
+create policy "services read authenticated"
+  on public.monitored_services for select
+  using (auth.role() = 'authenticated');
+
+create policy "services write engineer+admin"
+  on public.monitored_services for insert
+  with check (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role in ('engineer', 'admin')
+    )
+  );
+
+create policy "services update engineer+admin"
+  on public.monitored_services for update
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role in ('engineer', 'admin')
+    )
+  );
+
+create policy "services delete admin"
+  on public.monitored_services for delete
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role = 'admin'
+    )
+  );
+
+create table if not exists public.health_checks (
+  id text primary key,
+  service_id text not null references public.monitored_services (id) on delete cascade,
+  service_name text not null,
+  status text not null,
+  status_code integer,
+  response_time_ms integer not null default 0,
+  error_message text,
+  checked_at timestamptz not null default now()
+);
+
+create index if not exists health_checks_service_id_idx
+  on public.health_checks (service_id, checked_at desc);
+
+alter table public.health_checks enable row level security;
+
+drop policy if exists "health_checks read authenticated" on public.health_checks;
+drop policy if exists "health_checks write authenticated" on public.health_checks;
+
+create policy "health_checks read authenticated"
+  on public.health_checks for select
+  using (auth.role() = 'authenticated');
+
+-- The monitor itself runs as any authenticated user — engineers cron it,
+-- but the server-side route may also use the service role key.
+create policy "health_checks write authenticated"
+  on public.health_checks for insert
+  with check (auth.role() = 'authenticated');
+
+create table if not exists public.recovery_actions (
+  id text primary key,
+  incident_id text references public.incidents (id) on delete cascade,
+  service_id text references public.monitored_services (id) on delete set null,
+  action_type text not null,
+  action_status text not null default 'queued',
+  message text not null,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+create index if not exists recovery_actions_incident_idx
+  on public.recovery_actions (incident_id, created_at desc);
+
+alter table public.recovery_actions enable row level security;
+
+drop policy if exists "recovery_actions read authenticated"   on public.recovery_actions;
+drop policy if exists "recovery_actions write engineer+admin" on public.recovery_actions;
+drop policy if exists "recovery_actions update engineer+admin" on public.recovery_actions;
+
+create policy "recovery_actions read authenticated"
+  on public.recovery_actions for select
+  using (auth.role() = 'authenticated');
+
+create policy "recovery_actions write engineer+admin"
+  on public.recovery_actions for insert
+  with check (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role in ('engineer', 'admin')
+    )
+  );
+
+create policy "recovery_actions update engineer+admin"
+  on public.recovery_actions for update
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role in ('engineer', 'admin')
+    )
+  );

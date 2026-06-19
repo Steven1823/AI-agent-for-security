@@ -477,6 +477,49 @@ Open `/executive`. The dashboard shows mean-time-to-recovery, mean-time-to-detec
 - 🤖 **With `OPENAI_API_KEY`** — AI analyses use gpt-4o-mini.
 - 🛟 **Without `OPENAI_API_KEY`** — the deterministic rule engine runs. Reports are still complete.
 
+### API Monitoring Engine — scheduled health checks
+
+PulseGuard ships with a built-in monitoring engine that runs every 30 seconds in the browser via `useHealthMonitor`. For production you also want a **server-side** scheduled run so failures are detected even when no operator is logged in.
+
+The endpoint is `POST /api/monitor/run-checks` (also accepts GET). It loads every row in `monitored_services`, runs each check, persists results to `health_checks`, opens an incident on three consecutive failures, and queues a recovery action.
+
+**Vercel Cron** (`vercel.json` at the project root):
+
+```json
+{
+  "crons": [
+    { "path": "/api/monitor/run-checks", "schedule": "*/1 * * * *" }
+  ]
+}
+```
+
+Vercel Cron minimum frequency is 1 minute on Pro, 60 minutes on Hobby — use it to keep the table fresh; the in-browser hook fills the gap for live operators.
+
+**Supabase Edge Function with pg_cron** (every 30s):
+
+```sql
+select cron.schedule(
+  'pulseguard-health',
+  '*/30 * * * * *',
+  $$ select net.http_post(
+       url := 'https://your-app.vercel.app/api/monitor/run-checks',
+       headers := '{"Authorization":"Bearer <service-role>"}'::jsonb
+     ); $$
+);
+```
+
+**Render / Railway worker** (cheap fallback):
+
+```bash
+# In a tiny worker process:
+while true; do
+  curl -s -X POST https://your-app.vercel.app/api/monitor/run-checks > /dev/null
+  sleep 30
+done
+```
+
+The endpoint is idempotent and stateless — running it more than once in the same window just produces another row of fresh data.
+
 ---
 
 ## Security Notes

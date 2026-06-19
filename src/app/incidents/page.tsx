@@ -1,6 +1,7 @@
 "use client";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { PageIntro } from "@/components/layout/page-intro";
 import { SimulationCenter } from "@/features/simulation/simulation-center";
 import { SREAgentReport } from "@/features/incidents/sre-agent-report";
 import { IncidentList } from "@/features/incidents/incident-list";
@@ -13,6 +14,7 @@ export default function IncidentsPage() {
         title="Incidents"
         description="Every detected failure, diagnosed and tracked through resolution."
       />
+      <PageIntro description="Every detected incident, with status, severity, root cause, and recovery action. The AI SRE agent investigates each one and explains its findings." />
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           <SREAgentReport />
