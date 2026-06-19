@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { buildSREAgentPrompt, runSREAgent } from "@/services/sre-agent";
+import { guardApi } from "@/lib/api-auth";
 import type { SREAgentInput, SREAnalysis } from "@/types";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Any signed-in user can request analysis (read-only style query).
+  const guard = await guardApi();
+  if (!guard.ok) return guard.res;
+
   const input = (await req.json().catch(() => null)) as SREAgentInput | null;
   if (!input || typeof input !== "object" || !input.title || !input.service) {
     return NextResponse.json(

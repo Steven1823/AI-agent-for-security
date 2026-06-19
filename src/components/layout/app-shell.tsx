@@ -9,10 +9,21 @@ import { cn } from "@/lib/utils";
 import { useVoice } from "@/hooks/useVoice";
 import { useMetricsTicker } from "@/hooks/useMetrics";
 
+// Routes that should render WITHOUT the operator sidebar / topbar / mobile
+// nav. These have their own chrome (landing page, auth pages).
+const BARE_PATHS = new Set<string>(["/", "/login", "/signup"]);
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isBare = BARE_PATHS.has(pathname);
+
+  // Voice + metrics ticker are operator-only — never run on landing/auth.
   useVoice();
   useMetricsTicker();
+
+  if (isBare) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="relative flex min-h-screen">
@@ -36,8 +47,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           NAV_ITEMS[2], // Executive
         ].map((item) => {
           const active =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (

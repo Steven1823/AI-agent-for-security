@@ -12,7 +12,7 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r border-border/60 bg-background/40 px-4 py-6 backdrop-blur-xl lg:flex">
-      <Link href="/" className="mb-8 flex items-center gap-3 px-2">
+      <Link href="/dashboard" className="mb-8 flex items-center gap-3 px-2">
         <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-violet-600 shadow-lg shadow-violet-500/30">
           <ShieldHalf className="h-5 w-5 text-white" />
           <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-emerald-400" />
@@ -30,8 +30,8 @@ export function Sidebar() {
       <nav className="flex flex-1 flex-col gap-1">
         {NAV_ITEMS.map((item) => {
           const active =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (

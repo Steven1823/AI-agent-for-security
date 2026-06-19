@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { buildPrompt, fallbackAnalysis } from "@/services/ai";
+import { guardApi } from "@/lib/api-auth";
 import type { AnalyzeResponse, IncidentType, Severity } from "@/types";
 
 export const runtime = "nodejs";
@@ -14,6 +15,9 @@ interface Body {
 }
 
 export async function POST(req: Request) {
+  const guard = await guardApi();
+  if (!guard.ok) return guard.res;
+
   const body = (await req.json().catch(() => null)) as Body | null;
   if (!body || typeof body !== "object" || !body.title || !body.service) {
     return NextResponse.json(

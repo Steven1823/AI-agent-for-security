@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { formatClock } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { UserMenu } from "@/components/auth/user-menu";
+import { useAuth } from "@/lib/auth-context";
 
 export function Topbar() {
   const muted = usePulseStore((s) => s.muted);
@@ -15,6 +17,7 @@ export function Topbar() {
   const runDisaster = usePulseStore((s) => s.runDisasterScenario);
   const demoRunning = usePulseStore((s) => s.demoRunning);
   const health = usePulseStore((s) => s.healthScore());
+  const { can } = useAuth();
 
   const [clock, setClock] = useState("");
   useEffect(() => {
@@ -85,8 +88,13 @@ export function Topbar() {
         <Button
           variant="gradient"
           onClick={() => runDisaster()}
-          disabled={demoRunning}
+          disabled={demoRunning || !can.runChaos}
           className="hidden sm:inline-flex"
+          title={
+            can.runChaos
+              ? "Run end-to-end disaster scenario"
+              : "Viewer role — only admins & engineers can run chaos"
+          }
         >
           {demoRunning ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -95,6 +103,8 @@ export function Topbar() {
           )}
           {demoRunning ? "Running Scenario…" : "Run Disaster Scenario"}
         </Button>
+
+        <UserMenu />
       </div>
     </header>
   );
