@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/lib/auth-context";
+import { ToastProvider, Toaster } from "@/components/ui/toast";
 
 export const metadata: Metadata = {
   title: "PulseGuard AI — Self-Healing Cyber Infrastructure",
@@ -17,9 +18,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased scrollbar-thin">
-        <AuthProvider>
-          <AppShell>{children}</AppShell>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+            <Toaster />
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

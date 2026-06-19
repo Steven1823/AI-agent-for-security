@@ -13,6 +13,7 @@ import {
   Briefcase,
   Brain,
   PlayCircle,
+  Stethoscope,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Recovery", href: "/recovery", icon: Activity },
   { label: "Security", href: "/security", icon: ShieldCheck },
   { label: "Reports", href: "/reports", icon: FileText },
+  { label: "System Check", href: "/system-check", icon: Stethoscope },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

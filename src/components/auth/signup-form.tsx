@@ -23,11 +23,13 @@ import {
   scorePassword,
 } from "@/components/auth/password-strength";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/components/ui/toast";
 import { ROLES, ROLE_LABEL, ROLE_DESCRIPTION, type Role, type Profile } from "@/types/auth";
 
 export function SignupForm() {
   const router = useRouter();
   const { refresh, demoMode, setDemoSession } = useAuth();
+  const { toast } = useToast();
 
   const [fullName, setFullName] = React.useState("");
   const [organization, setOrganization] = React.useState("");
@@ -83,6 +85,7 @@ export function SignupForm() {
 
       if (!res.ok) {
         setError(json.error ?? "Could not create account.");
+        toast.error("Sign-up failed", json.error ?? "Please correct the highlighted fields.");
         setLoading(false);
         return;
       }
@@ -91,6 +94,7 @@ export function SignupForm() {
         setSuccess(
           "Check your inbox to confirm your email, then sign in to continue.",
         );
+        toast.success("Verify your email", "We sent you a confirmation link.");
         setLoading(false);
         return;
       }
@@ -100,10 +104,12 @@ export function SignupForm() {
       } else {
         await refresh();
       }
+      toast.success("Account created", `Welcome aboard, ${fullName}.`);
       router.push("/dashboard");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
+      toast.error("Network error", "Could not reach /api/auth/signup. Retry?");
       setLoading(false);
     }
   }

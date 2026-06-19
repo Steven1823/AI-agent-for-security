@@ -24,6 +24,7 @@ const PROTECTED_PREFIXES = [
   "/autonomous",
   "/copilot",
   "/executive",
+  "/system-check",
 ];
 
 const AUTH_PATHS = ["/login", "/signup"];

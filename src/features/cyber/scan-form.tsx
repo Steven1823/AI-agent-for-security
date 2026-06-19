@@ -7,6 +7,7 @@ import { usePulseStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const SAMPLES = [
@@ -41,10 +42,22 @@ export function ScanForm() {
   const [text, setText] = useState("");
   const analyzing = usePulseStore((s) => s.analyzing);
   const analyze = usePulseStore((s) => s.analyzeCyber);
+  const { toast } = useToast();
 
   async function submit() {
     if (!text.trim() || analyzing) return;
-    await analyze(text.trim());
+    try {
+      const report = await analyze(text.trim());
+      toast.success(
+        `Analysis complete (${report.severity})`,
+        `Source: ${report.source} · risk ${report.riskScore}/100 · confidence ${report.confidence}%`,
+      );
+    } catch (err) {
+      toast.error(
+        "Analyzer failed",
+        err instanceof Error ? err.message : "Unknown error — try again.",
+      );
+    }
   }
 
   return (

@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/components/ui/toast";
 import type { Profile } from "@/types/auth";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { refresh, demoMode, setDemoSession } = useAuth();
+  const { toast } = useToast();
   const redirect = params.get("redirect") || "/dashboard";
 
   const [email, setEmail] = React.useState("");
@@ -48,6 +50,7 @@ export function LoginForm() {
 
       if (!res.ok) {
         setError(json.error ?? "Login failed.");
+        toast.error("Sign-in failed", json.error ?? "Check your credentials and try again.");
         setLoading(false);
         return;
       }
@@ -58,10 +61,15 @@ export function LoginForm() {
       } else {
         await refresh();
       }
+      toast.success(
+        "Signed in",
+        json.profile ? `Welcome back, ${json.profile.full_name || json.profile.email}` : undefined,
+      );
       router.push(redirect);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
+      toast.error("Network error", "Could not reach /api/auth/login. Retry?");
       setLoading(false);
     }
   }
