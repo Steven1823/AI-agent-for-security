@@ -1,10 +1,12 @@
 /**
  * POST /api/auth/signup
  *
- * Creates a Supabase auth user and lets the `handle_new_user` trigger create
- * the matching profile row from `options.data`. We also defensively upsert
- * the profile here so it works even if the trigger isn't applied yet (e.g.
- * during initial setup).
+ * - With Supabase: creates an auth.users row and lets the
+ *   `handle_new_user` trigger create the matching profile from
+ *   `options.data`. We also upsert the profile as belt-and-suspenders.
+ * - Without Supabase (demo mode): validates input, returns a synthetic
+ *   profile so the user can immediately enter the dashboard. The client
+ *   persists this to localStorage. Switch on Supabase later for real signup.
  */
 import { NextResponse } from "next/server";
 import { createClient, authEnabled } from "@/lib/supabase/server";
@@ -30,13 +32,6 @@ function validatePassword(pw: string): string | null {
 }
 
 export async function POST(request: Request) {
-  if (!authEnabled) {
-    return NextResponse.json(
-      { error: "Authentication is not configured on this deployment." },
-      { status: 503 },
-    );
-  }
-
   let body: SignupBody;
   try {
     body = (await request.json()) as SignupBody;
@@ -65,6 +60,24 @@ export async function POST(request: Request) {
   const pwErr = validatePassword(password);
   if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
 
+  // Demo mode: synthetic success — no persistence, no real account.
+  if (!authEnabled) {
+    return NextResponse.json({
+      ok: true,
+      demoMode: true,
+      requiresEmailConfirmation: false,
+      profile: {
+        id: `demo_${role}_${Date.now().toString(36)}`,
+        email,
+        full_name,
+        organization,
+        role,
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+      },
+    });
+  }
+
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json(
@@ -91,8 +104,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Belt-and-suspenders: upsert profile so the row exists even if the
-  // database trigger hasn't been applied yet.
   await supabase
     .from("profiles")
     .upsert(
@@ -106,8 +117,6 @@ export async function POST(request: Request) {
       { onConflict: "id" },
     );
 
-  // If email confirmation is enabled in Supabase, `session` is null until
-  // the user clicks the confirmation link. We surface that to the UI.
   const requiresEmailConfirmation = !data.session;
 
   return NextResponse.json({

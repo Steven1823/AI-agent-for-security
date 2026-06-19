@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
+import type { Profile } from "@/types/auth";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const { refresh, demoMode } = useAuth();
+  const { refresh, demoMode, setDemoSession } = useAuth();
   const redirect = params.get("redirect") || "/dashboard";
 
   const [email, setEmail] = React.useState("");
@@ -41,6 +42,8 @@ export function LoginForm() {
 
       const json = (await res.json().catch(() => ({}))) as {
         error?: string;
+        demoMode?: boolean;
+        profile?: Profile;
       };
 
       if (!res.ok) {
@@ -49,7 +52,12 @@ export function LoginForm() {
         return;
       }
 
-      await refresh();
+      if (json.demoMode && json.profile) {
+        // Persist the demo session locally so the UI stays "signed in".
+        setDemoSession(json.profile);
+      } else {
+        await refresh();
+      }
       router.push(redirect);
       router.refresh();
     } catch {
@@ -67,8 +75,8 @@ export function LoginForm() {
     <form onSubmit={onSubmit} className="space-y-5">
       {demoMode && (
         <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200">
-          Demo mode — Supabase isn&apos;t configured. The login form runs but
-          can&apos;t authenticate until env vars are set.
+          <span className="font-medium">Demo mode active.</span> Any
+          credentials work — Supabase will enable real auth once configured.
         </div>
       )}
 

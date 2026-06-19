@@ -23,11 +23,11 @@ import {
   scorePassword,
 } from "@/components/auth/password-strength";
 import { useAuth } from "@/lib/auth-context";
-import { ROLES, ROLE_LABEL, ROLE_DESCRIPTION, type Role } from "@/types/auth";
+import { ROLES, ROLE_LABEL, ROLE_DESCRIPTION, type Role, type Profile } from "@/types/auth";
 
 export function SignupForm() {
   const router = useRouter();
-  const { refresh, demoMode } = useAuth();
+  const { refresh, demoMode, setDemoSession } = useAuth();
 
   const [fullName, setFullName] = React.useState("");
   const [organization, setOrganization] = React.useState("");
@@ -77,6 +77,8 @@ export function SignupForm() {
       const json = (await res.json().catch(() => ({}))) as {
         error?: string;
         requiresEmailConfirmation?: boolean;
+        demoMode?: boolean;
+        profile?: Profile;
       };
 
       if (!res.ok) {
@@ -93,7 +95,11 @@ export function SignupForm() {
         return;
       }
 
-      await refresh();
+      if (json.demoMode && json.profile) {
+        setDemoSession(json.profile);
+      } else {
+        await refresh();
+      }
       router.push("/dashboard");
       router.refresh();
     } catch {
@@ -106,8 +112,9 @@ export function SignupForm() {
     <form onSubmit={onSubmit} className="space-y-4">
       {demoMode && (
         <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-200">
-          Demo mode — Supabase isn&apos;t configured. Signup requires Supabase
-          env vars.
+          <span className="font-medium">Demo mode active.</span> Any details
+          work — you&apos;ll enter as the selected role. Configure Supabase
+          for real signups.
         </div>
       )}
 
